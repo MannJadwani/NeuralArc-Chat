@@ -1,101 +1,234 @@
-import Image from "next/image";
+"use client"
+
+import { useState } from "react";
+import { Message, SuggestedPrompt, availableModels } from "./types";
+import { Sidebar } from "./components/layout/Sidebar";
+import { Header } from "./components/layout/Header";
+import { ChatMessage } from "./components/chat/ChatMessage";
+import { ChatInput } from "./components/chat/ChatInput";
+import { Welcome } from "./components/chat/Welcome";
+import { useRouter } from 'next/navigation';
+import { useChat } from './context/ChatContext';
+
+const demoChats = {
+  codeDemo: {
+    title: "Code Review Example",
+    messages: [
+      {
+        id: "1",
+        content: "Can you help me understand this React code?",
+        sender: "user" as const,
+        timestamp: Date.now() - 5000,
+        model: "gpt-4"
+      },
+      {
+        id: "2",
+        content: "I'll help you understand this React component. Let's break it down:",
+        sender: "ai" as const,
+        timestamp: Date.now() - 4000,
+        model: "gpt-4",
+        codeBlocks: [
+          {
+            language: "typescript",
+            filename: "Counter.tsx",
+            code: `import { useState } from 'react';
+
+export function Counter() {
+  const [count, setCount] = useState(0);
+  
+  return (
+    <div className="p-4">
+      <p>Count: {count}</p>
+      <button 
+        onClick={() => setCount(count + 1)}
+        className="px-4 py-2 bg-blue-500 text-white rounded"
+      >
+        Increment
+      </button>
+    </div>
+  );
+}`
+          }
+        ]
+      }
+    ]
+  },
+  chaptersDemo: {
+    title: "Learning React Hooks",
+    messages: [
+      {
+        id: "1",
+        content: "Can you teach me about React hooks?",
+        sender: "user" as const,
+        timestamp: Date.now() - 3000,
+        model: "gpt-4"
+      },
+      {
+        id: "2",
+        content: "I'll guide you through React hooks with a structured learning path:",
+        sender: "ai" as const,
+        timestamp: Date.now() - 2000,
+        model: "gpt-4",
+        chapters: [
+          {
+            title: "1. Introduction to Hooks",
+            content: "Hooks are functions that allow you to 'hook into' React state and lifecycle features from function components. They were introduced in React 16.8 to allow you to use state and other React features without writing a class component."
+          },
+          {
+            title: "2. useState Hook",
+            content: "The useState hook lets you add state to functional components. It returns an array with two elements: the current state value and a function to update it."
+          },
+          {
+            title: "3. useEffect Hook",
+            content: "useEffect lets you perform side effects in function components. It serves a similar purpose to componentDidMount, componentDidUpdate, and componentWillUnmount in React classes."
+          }
+        ]
+      }
+    ]
+  }
+};
+
+const suggestedPrompts: SuggestedPrompt[] = [
+  {
+    id: '1',
+    title: '💻 Code Review',
+    description: 'Get feedback on your code',
+    prompt: 'Can you review my code and suggest improvements?'
+  },
+  {
+    id: '2',
+    title: '🐛 Debug Help',
+    description: 'Find and fix issues',
+    prompt: 'I need help debugging this error in my code:'
+  },
+  {
+    id: '3',
+    title: '📚 Learn Concepts',
+    description: 'Understand programming concepts',
+    prompt: 'Can you explain how async/await works in JavaScript?'
+  },
+  {
+    id: '4',
+    title: '🚀 Project Ideas',
+    description: 'Get inspiration for coding projects',
+    prompt: 'Suggest some project ideas to help me learn React.'
+  }
+];
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const router = useRouter();
+  const [inputMessage, setInputMessage] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  const {
+    messages,
+    addMessage,
+    clearMessages,
+    isLoading,
+    currentModel,
+    setCurrentModel,
+    error,
+    sendMessage,
+    streamingMessage
+  } = useChat();
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
+    const message = inputMessage;
+    setInputMessage('');
+    await sendMessage(message);
+  };
+
+  const startNewChat = () => {
+    clearMessages();
+    setIsSidebarOpen(false);
+  };
+
+  const loadDemoChat = (chatKey: keyof typeof demoChats) => {
+    clearMessages();
+    demoChats[chatKey].messages.forEach(message => addMessage(message));
+    setIsSidebarOpen(false);
+  };
+
+  const handleSignOut = () => {
+    setIsAuthenticated(false);
+    setUser(null);
+    router.push('/auth');
+  };
+
+  const handleModelChange = (modelId: string) => {
+    const model = availableModels.find(m => m.id === modelId);
+    if (model) {
+      setCurrentModel(model);
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <Sidebar
+        onNewChat={startNewChat}
+        isSidebarOpen={isSidebarOpen}
+        onLoadDemo={loadDemoChat}
+        demoChats={demoChats}
+      />
+
+      <div className="flex-1 flex flex-col">
+        <Header
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          selectedModel={currentModel.id}
+          onModelChange={handleModelChange}
+          isAuthenticated={isAuthenticated}
+          user={user || undefined}
+          onSignOut={handleSignOut}
+        />
+
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {messages.length === 0 ? (
+              <Welcome
+                suggestedPrompts={suggestedPrompts}
+                onSelectPrompt={setInputMessage}
+              />
+            ) : (
+              <>
+                {messages.map(message => (
+                  <ChatMessage key={message.id} message={message} />
+                ))}
+                {streamingMessage && (
+                  <ChatMessage
+                    message={{
+                      id: 'streaming',
+                      content: streamingMessage,
+                      sender: 'ai',
+                      timestamp: Date.now(),
+                      model: currentModel.id
+                    }}
+                  />
+                )}
+              </>
+            )}
+            {error && (
+              <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/50 text-red-600 dark:text-red-300">
+                {error}
+              </div>
+            )}
+            {isLoading && !streamingMessage && (
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+              </div>
+            )}
+          </div>
+        </main>
+
+        <ChatInput
+          value={inputMessage}
+          onChange={setInputMessage}
+          onSend={handleSendMessage}
+          disabled={isLoading}
+        />
+      </div>
     </div>
   );
 }
